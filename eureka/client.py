@@ -1,13 +1,20 @@
 import json
 import random
-from urllib2 import URLError
-from urlparse import urljoin
+
 from eureka import requests
 from eureka import ec2metadata
 import logging
 import dns.resolver
 from eureka.requests import EurekaHTTPException
 
+try:
+    # Python 3 and later
+    from urllib.error import URLError
+    from urllib.parse import urljoin
+except ImportError:
+    # Python 2
+    from urllib2 import URLError
+    from urlparse import urljoin
 
 logger = logging.getLogger('eureka.client')
 
@@ -62,13 +69,15 @@ class EurekaClient(object):
         # Relative URL to eureka
         self.context = context
         self.health_check_url = health_check_url
+
+    def init(self):
         self.eureka_urls = self.get_eureka_urls()
 
     def _get_txt_records_from_dns(self, domain):
         records = dns.resolver.query(domain, 'TXT')
         for record in records:
             for string in record.strings:
-                yield string
+                yield string.decode("UTF-8")
 
     def _get_zone_urls_from_dns(self, domain):
         for zone in self._get_txt_records_from_dns(domain):

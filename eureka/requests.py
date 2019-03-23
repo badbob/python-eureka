@@ -1,14 +1,23 @@
-import urllib2
 from eureka import __version__ as client_version
 import gzip
-import StringIO
 
+try:
+    # Python 3 and later
+    from urllib.request import Request as UrllibReq
+    from urllib.request import build_opener
+    from urllib.error   import HTTPError
+    from io import StringIO
+except ImportError:
+    # Python 2
+    from urllib2 import Request as UrllibReq
+    from urllib2 import build_opener, HTTPError
+    import StringIO
 
 class EurekaHTTPException(Exception):
     pass
 
 
-class Request(urllib2.Request):
+class Request(UrllibReq):
     """
     Instead of requiring a version of `requests`, we use this easy wrapper around urllib2 to avoud possible
     version conflicts with people own software.
@@ -16,11 +25,11 @@ class Request(urllib2.Request):
     def __init__(self, url, method="GET", data=None, headers=None,
                  origin_req_host=None, unverifiable=False):
         self.method = method
-        self._opener = urllib2.build_opener()
+        self._opener = build_opener()
         self._opener.addheaders = [
             ('User-agent', 'python-eureka v%s' % client_version)
         ]
-        urllib2.Request.__init__(self, url, data=data, headers=headers or {},
+        UrllibReq.__init__(self, url, data=data, headers=headers or {},
                                  origin_req_host=origin_req_host, unverifiable=unverifiable)
 
     def get_method(self):
@@ -32,7 +41,7 @@ class Request(urllib2.Request):
         request = cls(url, method, data=data, headers=headers)
         try:
             response = request._opener.open(request)
-        except urllib2.HTTPError as e:
+        except HTTPError as e:
             return Response(e.code, e.read(), url, method)
 
         content = response.read()
